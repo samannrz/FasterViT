@@ -13,5 +13,5 @@ VIS_LABEL_MAP = [
     (0, 255, 0) # Check
 
 ]
-ROOT_PATH = 'media/nfs/data/sanoorzadeh/projects/IncisionDeepLab/input/incision/orig_data4'
+ROOT_PATH = '/media/nfs/data/sanoorzadeh/projects/IncisionDeepLab/input/incision/orig_data4'
 #media/nfs/data/sanoorzadeh/
