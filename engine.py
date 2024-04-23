@@ -12,7 +12,7 @@ def train(
     criterion,
     classes_to_train
 ):
-    print('Training')
+    print('Training\n\n')
     model.train()
     train_running_loss = 0.0
     # Calculate the number of batches.
@@ -24,7 +24,6 @@ def train(
     counter = 0 # to keep track of batch counter
     num_classes = len(classes_to_train)
     iou_eval = IOUEval(num_classes)
-
     for i, data in enumerate(prog_bar):
         counter += 1
         data, target = data[0].to(device), data[1].to(device)

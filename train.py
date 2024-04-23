@@ -6,7 +6,7 @@ import argparse
 from datasets import get_images, get_dataset, get_data_loaders
 from engine import train, validate
 from segmentation_model import faster_vit_0_any_res
-from config import ALL_CLASSES, LABEL_COLORS_LIST
+from config import ALL_CLASSES, LABEL_COLORS_LIST, ROOT_PATH
 from utils import save_model, SaveBestModel, save_plots, SaveBestModelIOU
 from torch.optim.lr_scheduler import MultiStepLR
 
@@ -74,9 +74,8 @@ if __name__ == '__main__':
     criterion = nn.CrossEntropyLoss()
 
     train_images, train_masks, valid_images, valid_masks = get_images(
-        root_path='input/leaf_disease_segmentation/orig_data'    
+        root_path=ROOT_PATH
     )
-
     classes_to_train = ALL_CLASSES
 
     train_dataset, valid_dataset = get_dataset(
