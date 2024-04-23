@@ -51,7 +51,7 @@ print(args)
 
 if __name__ == '__main__':
     # Create a directory with the model name for outputs.
-    out_dir = os.path.join('outputs')
+    out_dir = os.path.join('outputs/outputs_consensus-Batch1-28-scheduler')
     out_dir_valid_preds = os.path.join('outputs', 'valid_preds')
     os.makedirs(out_dir, exist_ok=True)
     os.makedirs(out_dir_valid_preds, exist_ok=True)
