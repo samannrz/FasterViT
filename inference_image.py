@@ -3,8 +3,8 @@ import argparse
 import cv2
 import os
 
-from utils import get_segment_labels, draw_segmentation_map, image_overlay
-from config import ALL_CLASSES
+from utils import get_segment_labels, draw_segmentation_map, image_overlay, get_mask_by_color, replace_color, overlayMasks
+from config import ALL_CLASSES, VIS_LABEL_MAP
 from segmentation_model import faster_vit_0_any_res
 
 # Construct the argument parser.
@@ -17,7 +17,7 @@ parser.add_argument(
 )
 parser.add_argument(
     '--imgsz', 
-    default=[512, 416],
+    default=[512, 512],
     type=int,
     nargs='+',
     help='width, height'
@@ -27,11 +27,16 @@ parser.add_argument(
     default=torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
     choices=['cuda', 'cpu']
 )
+parser.add_argument('-o', '--output', default= os.path.join('outputs', 'inference_results_image'),help='path to input dir')
+
 args = parser.parse_args()
 
-out_dir = os.path.join('outputs', 'inference_results_image')
+out_dir = args.output
 os.makedirs(out_dir, exist_ok=True)
-
+os.makedirs(os.path.join(out_dir,'final'), exist_ok=True)
+os.makedirs(os.path.join(out_dir,'mask'), exist_ok=True)
+os.makedirs(os.path.join(out_dir,'mask/Treat'), exist_ok=True)
+os.makedirs(os.path.join(out_dir,'mask/Check'), exist_ok=True)
 # Set computation device.
 device = args.device
 
@@ -49,6 +54,7 @@ for i, image_path in enumerate(all_image_paths):
     # Read the image.
     image = cv2.imread(os.path.join(args.input, image_path))
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    fr_height, fr_width = image.shape[:2]
 
     if args.imgsz is not None:
         image = cv2.resize(image, (args.imgsz[0], args.imgsz[1]))
@@ -61,6 +67,18 @@ for i, image_path in enumerate(all_image_paths):
     segmented_image = draw_segmentation_map(outputs)
     
     final_image = image_overlay(image, segmented_image)
-    cv2.imshow('Segmented image', final_image)
-    cv2.waitKey(1)
-    cv2.imwrite(os.path.join(out_dir, image_path), final_image)
+    # cv2.imshow('Segmented image', final_image)
+    # cv2.waitKey(1)
+    # cv2.imwrite(os.path.join(out_dir,'final', image_path), final_image)
+    cv2.imwrite(os.path.join(out_dir, 'final', image_path),cv2.resize(final_image, (fr_width, fr_height), interpolation=cv2.INTER_AREA))
+    print('saved')
+    mask1 = get_mask_by_color(segmented_image, VIS_LABEL_MAP[1])
+    mask2 = get_mask_by_color(segmented_image, VIS_LABEL_MAP[2])
+    from PIL import Image
+    image = Image.fromarray(image)
+
+    final_image = overlayMasks(image, mask1, mask2)
+    mask1 = replace_color(mask1, (255, 0, 0), (255, 255, 255))
+    mask1.resize((fr_width, fr_height)).save(os.path.join(out_dir, 'mask/Treat/', image_path))
+    mask2 = replace_color(mask2, (0, 255, 0), (255, 255, 255))
+    mask2.resize((fr_width, fr_height)).save(os.path.join(out_dir, 'mask/Check/', image_path))
