@@ -2,7 +2,7 @@
 
 ##Resource Request
 
-#SBATCH --job-name incisionDeeplab
+#SBATCH --job-name FastAll
 #SBATCH --output=stdout
 #SBATCH --error=sdterr
 #SBATCH --ntasks=1  ## number of tasks (analyses) to run
