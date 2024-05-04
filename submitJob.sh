@@ -13,4 +13,4 @@
 #SBATCH --time=0-24:00:00  ## time for analysis (day-hour:min:sec)
 
 ## Run the script
-srun python train.py --epochs 300 --batch 10 --scheduler
+srun python train.py --epochs 300 --batch 8 --scheduler
