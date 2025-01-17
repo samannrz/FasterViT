@@ -1,3 +1,5 @@
+import time
+
 import torch
 import argparse
 import cv2
@@ -49,6 +51,7 @@ model.load_state_dict(ckpt['model_state_dict'])
 model.eval().to(device)
 
 all_image_paths = os.listdir(args.input)
+total_fps = 0
 for i, image_path in enumerate(all_image_paths):
     print(f"Image {i+1}")
     # Read the image.
@@ -61,24 +64,34 @@ for i, image_path in enumerate(all_image_paths):
 
     image_copy = image.copy()
     image_copy = image_copy / 255.0
+    start_time = time.time()
     # Do forward pass and get the output dictionary.
     outputs = get_segment_labels(image_copy, model, device)
     outputs = outputs
     segmented_image = draw_segmentation_map(outputs)
-    
+
     final_image = image_overlay(image, segmented_image)
+    end_time = time.time()
+    fps = 1 / (end_time - start_time)
+    total_fps += fps
     # cv2.imshow('Segmented image', final_image)
     # cv2.waitKey(1)
     # cv2.imwrite(os.path.join(out_dir,'final', image_path), final_image)
-    cv2.imwrite(os.path.join(out_dir, 'final', image_path),cv2.resize(final_image, (fr_width, fr_height), interpolation=cv2.INTER_AREA))
-    print('saved')
+    # cv2.imwrite(os.path.join(out_dir, 'final', image_path),cv2.resize(final_image, (fr_width, fr_height), interpolation=cv2.INTER_AREA))
+    # print('saved')
     mask1 = get_mask_by_color(segmented_image, VIS_LABEL_MAP[1])
     mask2 = get_mask_by_color(segmented_image, VIS_LABEL_MAP[2])
     from PIL import Image
     image = Image.fromarray(image)
 
     final_image = overlayMasks(image, mask1, mask2)
+    cv2.imwrite(os.path.join(out_dir, 'final', image_path),
+                cv2.cvtColor(cv2.resize(final_image, (fr_width, fr_height), interpolation=cv2.INTER_AREA),
+                             cv2.COLOR_BGR2RGB))
     mask1 = replace_color(mask1, (255, 0, 0), (255, 255, 255))
     mask1.resize((fr_width, fr_height)).save(os.path.join(out_dir, 'mask/Treat/', image_path))
     mask2 = replace_color(mask2, (0, 255, 0), (255, 255, 255))
     mask2.resize((fr_width, fr_height)).save(os.path.join(out_dir, 'mask/Check/', image_path))
+
+average_fps = total_fps / len(all_image_paths)
+print('average fps : '+str(average_fps)+ ' on ' + str(len(all_image_paths))+' images')

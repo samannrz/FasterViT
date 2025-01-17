@@ -4,13 +4,16 @@ import argparse
 import time
 import os
 
-from utils import get_segment_labels, draw_segmentation_map, image_overlay
-from config import ALL_CLASSES
+from utils import get_segment_labels, draw_segmentation_map, image_overlay,get_mask_by_color, overlayMasks
+from config import ALL_CLASSES, VIS_LABEL_MAP
+
 from segmentation_model import faster_vit_0_any_res
 
 # Construct the argument parser.
 parser = argparse.ArgumentParser()
 parser.add_argument('-i', '--input', help='path to input dir')
+parser.add_argument('-o', '--output', help='path to output dir')
+
 parser.add_argument(
     '--model',
     default='outputs/model.pth',
@@ -18,7 +21,7 @@ parser.add_argument(
 )
 parser.add_argument(
     '--imgsz', 
-    default=[512, 416],
+    default=[512, 512],
     type=int,
     nargs='+',
     help='width, height'
@@ -29,8 +32,8 @@ parser.add_argument(
     choices=['cuda', 'cpu']
 )
 args = parser.parse_args()
-
-out_dir = os.path.join('outputs', 'inference_results_video')
+out_dir = args.output
+#out_dir = os.path.join('outputs', 'inference_results_video')
 os.makedirs(out_dir, exist_ok=True)
 
 # Set computation device.
@@ -58,16 +61,19 @@ save_name = f"{args.input.split('/')[-1].split('.')[0]}"
 out = cv2.VideoWriter(f"{out_dir}/{save_name}.mp4",
                       cv2.VideoWriter_fourcc(*'mp4v'), frame_fps,
                       args.imgsz)
-
+print(f"{out_dir}/{save_name}.mp4")
 frame_count = 0 # to count total frames
 total_fps = 0 # to get the final frames per second
 
 # read until end of video
+jj=0
 while(cap.isOpened()):
     # capture each frame of the video
     ret, frame = cap.read()
     if ret:
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        fr_height, fr_width = rgb_frame.shape[:2]
+
         if args.imgsz is not None:
             rgb_frame = cv2.resize(rgb_frame, (args.imgsz[0], args.imgsz[1]))
         
@@ -78,8 +84,17 @@ while(cap.isOpened()):
         # Do forward pass and get the output dictionary.
         outputs = get_segment_labels(rgb_frame, model, device)
         segmented_image = draw_segmentation_map(outputs)
-        
-        final_image = image_overlay(orig_rgb_frame, segmented_image)
+
+        mask1 = get_mask_by_color(segmented_image, VIS_LABEL_MAP[1])
+        mask2 = get_mask_by_color(segmented_image, VIS_LABEL_MAP[2])
+        from PIL import Image
+
+        image = Image.fromarray(orig_rgb_frame)
+
+        final_image = overlayMasks(image, mask1, mask2)
+
+
+        #final_image = image_overlay(orig_rgb_frame, segmented_image)
 
         # get the end time
         end_time = time.time()
@@ -101,8 +116,13 @@ while(cap.isOpened()):
             lineType=cv2.LINE_AA
         )
         # press `q` to exit
-        cv2.imshow('image', final_image)
-        out.write(final_image)
+        # cv2.imshow('image', cv2.cvtColor(cv2.resize(final_image, (fr_width, fr_height), interpolation=cv2.INTER_AREA),
+        #                      cv2.COLOR_BGR2RGB))
+        cv2.imwrite(os.path.join('/data/projects/FasterViT/outputs/outputs_all-Batch1-28-scheduler/results-videos', save_name+str(frame_count)+'.png'),
+                    cv2.cvtColor(cv2.resize(final_image, (fr_width, fr_height), interpolation=cv2.INTER_AREA),
+                                 cv2.COLOR_BGR2RGB))
+        out.write(cv2.cvtColor(cv2.resize(final_image, (fr_width, fr_height), interpolation=cv2.INTER_AREA),
+                             cv2.COLOR_BGR2RGB))
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
     else:
